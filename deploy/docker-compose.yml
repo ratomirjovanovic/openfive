@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  gateway:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.gateway
+    ports:
+      - "8787:8787"
+    environment:
+      GATEWAY_PORT: "8787"
+      DATABASE_URL: "postgresql://postgres:postgres@host.docker.internal:54322/postgres"
+      SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY}"
+      MASTER_ENCRYPTION_KEY: "${MASTER_ENCRYPTION_KEY}"
+      LOG_LEVEL: "info"
+    restart: unless-stopped
