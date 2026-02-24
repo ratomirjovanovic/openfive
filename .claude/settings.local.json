@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --version)",
+      "Bash(node --version)",
+      "Bash(npx --version)",
+      "Bash(go version)",
+      "Bash(supabase --version)",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); print\\(data[0][''text''][:8000]\\)\")",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); text=data[0][''text'']; print\\(text[8000:16000]\\)\")",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); text=data[0][''text'']; print\\(text[16000:24000]\\)\")",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); text=data[0][''text'']; print\\(text[24000:32000]\\)\")",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); text=data[0][''text'']; print\\(text[32000:40000]\\)\")",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); text=data[0][''text'']; print\\(text[40000:]\\)\")",
+      "Bash(python3 -c \"import sys; text=sys.stdin.read\\(\\); print\\(text[:8000]\\)\")",
+      "Bash(python3 -c \"import sys; text=sys.stdin.read\\(\\); print\\(text[8000:16000]\\)\")",
+      "Bash(git init)",
+      "Bash(npx create-next-app@latest apps/web --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack --use-pnpm --no-git)",
+      "Bash(go mod init github.com/openfive/gateway)",
+      "Bash(where go)",
+      "Bash(pnpm install)",
+      "Bash(gh auth status)",
+      "Bash(git add pnpm-workspace.yaml package.json turbo.json tsconfig.json .npmrc .gitignore .env.example LICENSE pnpm-lock.yaml)",
+      "Bash(git add apps/web/ packages/shared/ packages/sdk/ services/gateway/ deploy/ infra/ docs/ .github/)",
+      "Bash(git commit:*)",
+      "Bash(git config user.email \"ratomirjovanovic@users.noreply.github.com\")",
+      "Bash(git config user.name \"ratomirjovanovic\")",
+      "Bash(git add infra/)",
+      "Bash(pnpm add @supabase/supabase-js @supabase/ssr @tanstack/react-query zod lucide-react recharts)",
+      "Bash(pnpm add -D @tanstack/react-table)",
+      "Bash(pnpx shadcn@latest init -d --base-color neutral --css-variables true)",
+      "Bash(pnpx shadcn@latest init -d)",
+      "Bash(pnpx shadcn@latest add button badge card dialog dropdown-menu input label select separator sheet skeleton table tabs toast tooltip popover command avatar switch textarea scroll-area -y)",
+      "Bash(pnpx shadcn@latest add button badge card dialog dropdown-menu input label select separator sheet skeleton table tabs sonner tooltip popover command avatar switch textarea scroll-area -y)",
+      "Bash(npx next build)",
+      "Bash(pnpm add @openfive/shared --workspace)",
+      "Bash(git add apps/web/ packages/ pnpm-lock.yaml)",
+      "Bash(ls d:/claude/openfive/apps/web/src/app/'\\(dashboard\\)'/)",
+      "Bash(find \"d:/claude/openfive/apps/web/src/app/\\(dashboard\\)\" -name \"page.tsx\" -type f)",
+      "Bash(git add -A)"
+    ],
+    "additionalDirectories": [
+      "D:\\claude\\openfive",
+      "d:\\claude\\openfive\\apps\\web\\src\\app\\api\\v1\\organizations\\[orgId]\\projects\\[projectId]\\environments\\[envId]\\routes"
+    ]
+  }
+}
