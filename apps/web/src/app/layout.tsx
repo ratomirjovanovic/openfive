@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryProvider } from "@/providers/query-provider";
 import { ContextProvider } from "@/providers/context-provider";
+import { ThemeProvider } from "@/providers/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,15 +29,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            try {
+              const theme = localStorage.getItem('openfive-theme') || 'system';
+              const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+              if (isDark) document.documentElement.classList.add('dark');
+            } catch {}
+          `,
+        }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <QueryProvider>
-          <ContextProvider>
-            <TooltipProvider>{children}</TooltipProvider>
-          </ContextProvider>
-        </QueryProvider>
+        <ThemeProvider>
+          <QueryProvider>
+            <ContextProvider>
+              <TooltipProvider>{children}</TooltipProvider>
+            </ContextProvider>
+          </QueryProvider>
+        </ThemeProvider>
         <Toaster />
       </body>
     </html>

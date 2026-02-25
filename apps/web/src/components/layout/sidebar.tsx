@@ -22,6 +22,8 @@ import {
   Bell,
   Gauge,
   Layers,
+  FlaskConical,
+  Star,
 } from "lucide-react";
 
 interface NavSection {
@@ -43,6 +45,7 @@ const navSections: NavSection[] = [
       { label: "Live Logs", href: "/logs", icon: Radio },
       { label: "Analytics", href: "/analytics", icon: BarChart3 },
       { label: "Incidents", href: "/incidents", icon: AlertTriangle },
+      { label: "Evaluations", href: "/evaluations", icon: Star },
     ],
   },
   {
@@ -53,6 +56,7 @@ const navSections: NavSection[] = [
       { label: "Budgets", href: "/budgets", icon: Wallet },
       { label: "Cache", href: "/cache", icon: Database },
       { label: "Templates", href: "/templates", icon: FileText },
+      { label: "A/B Tests", href: "/ab-tests", icon: FlaskConical },
     ],
   },
   {
@@ -73,12 +77,12 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r border-neutral-200 bg-white">
-      <div className="flex h-14 items-center gap-2 border-b border-neutral-200 px-5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-neutral-900 text-xs font-bold text-white">
+    <aside className="flex h-screen w-60 flex-col border-r border-border bg-card">
+      <div className="flex h-14 items-center gap-2 border-b border-border px-5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
           O5
         </div>
-        <span className="text-sm font-semibold tracking-tight text-neutral-900">
+        <span className="text-sm font-semibold tracking-tight text-foreground">
           OpenFive
         </span>
       </div>
@@ -86,7 +90,7 @@ export function Sidebar() {
         {navSections.map((section, idx) => (
           <div key={idx} className={idx > 0 ? "mt-4" : ""}>
             {section.title && (
-              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {section.title}
               </p>
             )}
@@ -102,8 +106,8 @@ export function Sidebar() {
                     className={cn(
                       "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-colors",
                       isActive
-                        ? "bg-neutral-100 font-medium text-neutral-900"
-                        : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700"
+                        ? "bg-accent font-medium text-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   >
                     <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -115,10 +119,10 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="border-t border-neutral-200 px-3 py-3">
-        <div className="rounded-md bg-neutral-50 px-3 py-2.5">
-          <p className="text-xs font-medium text-neutral-500">Gateway</p>
-          <p className="mt-0.5 text-xs text-neutral-400">
+      <div className="border-t border-border px-3 py-3">
+        <div className="rounded-md bg-muted px-3 py-2.5">
+          <p className="text-xs font-medium text-muted-foreground">Gateway</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
             localhost:8787
           </p>
         </div>
