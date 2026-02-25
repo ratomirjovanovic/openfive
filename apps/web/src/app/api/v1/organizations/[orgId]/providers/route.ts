@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOrgMember, requireOrgAdmin } from "@/lib/api/auth-guard";
 import { validateBody } from "@/lib/api/validate";
 import { jsonResponse, createdResponse, errorResponse } from "@/lib/api/response";
+import { encrypt } from "@/lib/crypto";
 import { z } from "zod/v4";
 
 const createProviderSchema = z.object({
@@ -44,16 +45,22 @@ export async function POST(
     const body = await validateBody(request, createProviderSchema);
     const supabase = await createClient();
 
-    // TODO: Encrypt api_key before storing
+    // Encrypt API key before storing - never store plaintext
     const { api_key, ...providerData } = body;
+    let encryptedKey: string | null = null;
+    if (api_key) {
+      encryptedKey = await encrypt(api_key);
+    }
+
     const { data, error } = await supabase
       .from("providers")
       .insert({
         ...providerData,
         organization_id: orgId,
-        api_key_enc: api_key || null,
+        api_key_enc: encryptedKey,
       })
-      .select()
+      // Never return api_key_enc in response
+      .select("id, organization_id, name, display_name, provider_type, base_url, status, metadata, created_at, updated_at")
       .single();
 
     if (error) throw error;

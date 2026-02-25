@@ -8,10 +8,24 @@ dist/
 out/
 build/
 
-# Environment
+# Environment - NEVER commit secrets
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
+.env.development
+
+# Secrets & keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+credentials.json
+service-account*.json
+*secret*
+!**/src/**
 
 # IDE
 .vscode/
