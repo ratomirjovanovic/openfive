@@ -12,6 +12,7 @@ import {
   Wallet,
   Users,
   Settings,
+  CreditCard,
 } from "lucide-react";
 
 const navItems = [
@@ -22,6 +23,7 @@ const navItems = [
   { label: "Providers", href: "/providers", icon: Plug },
   { label: "Budgets", href: "/budgets", icon: Wallet },
   { label: "Users & Roles", href: "/users", icon: Users },
+  { label: "Billing", href: "/settings/billing", icon: CreditCard },
   { label: "Settings", href: "/settings/general", icon: Settings },
 ];
 

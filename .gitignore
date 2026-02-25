@@ -39,3 +39,5 @@ services/gateway/gateway.exe
 # Coverage
 coverage/
 .nyc_output/
+
+.vercel
