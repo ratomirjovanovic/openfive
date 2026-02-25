@@ -1,0 +1,734 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OpenFive Gateway API",
+    "version": "1.0.0",
+    "description": "OpenFive is an intelligent LLM routing gateway that proxies requests to multiple AI providers with cost optimization, model fallback, budget enforcement, and observability. The API is OpenAI-compatible, so you can use existing SDKs by changing the base URL.",
+    "contact": {
+      "name": "OpenFive Support",
+      "url": "https://openfive.dev"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8787",
+      "description": "Local development gateway"
+    },
+    {
+      "url": "https://gateway.openfive.dev",
+      "description": "Production gateway (configurable)"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/v1/chat/completions": {
+      "post": {
+        "operationId": "createChatCompletion",
+        "summary": "Create chat completion",
+        "description": "Sends a chat completion request through the OpenFive gateway. The gateway selects the optimal model based on your route configuration, cost constraints, latency requirements, and provider availability. Supports streaming via SSE.\n\nThis endpoint is fully compatible with the OpenAI Chat Completions API, so existing SDKs and tools work out of the box.",
+        "tags": ["Chat"],
+        "parameters": [
+          {
+            "name": "x-route-id",
+            "in": "header",
+            "description": "Override the default route for this request. Must be a valid route slug or UUID configured in your environment.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-agent-id",
+            "in": "header",
+            "description": "Identify the calling agent or service for analytics and budget tracking.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-max-cost-cents",
+            "in": "header",
+            "description": "Maximum cost in cents allowed for this single request. The gateway will reject the request if the estimated cost exceeds this limit.",
+            "schema": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          {
+            "name": "x-trace-id",
+            "in": "header",
+            "description": "Custom trace ID for distributed tracing. If not provided, the gateway generates one automatically.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionRequest"
+              },
+              "examples": {
+                "simple": {
+                  "summary": "Simple text completion",
+                  "value": {
+                    "model": "auto",
+                    "messages": [
+                      {
+                        "role": "system",
+                        "content": "You are a helpful assistant."
+                      },
+                      {
+                        "role": "user",
+                        "content": "What is the capital of France?"
+                      }
+                    ]
+                  }
+                },
+                "with_parameters": {
+                  "summary": "With temperature and max tokens",
+                  "value": {
+                    "model": "openai/gpt-4o",
+                    "messages": [
+                      {
+                        "role": "user",
+                        "content": "Write a haiku about distributed systems."
+                      }
+                    ],
+                    "temperature": 0.7,
+                    "max_tokens": 100
+                  }
+                },
+                "streaming": {
+                  "summary": "Streaming response",
+                  "value": {
+                    "model": "auto",
+                    "messages": [
+                      {
+                        "role": "user",
+                        "content": "Explain quantum computing in simple terms."
+                      }
+                    ],
+                    "stream": true
+                  }
+                },
+                "tool_use": {
+                  "summary": "With tool/function calling",
+                  "value": {
+                    "model": "openai/gpt-4o",
+                    "messages": [
+                      {
+                        "role": "user",
+                        "content": "What's the weather in San Francisco?"
+                      }
+                    ],
+                    "tools": [
+                      {
+                        "type": "function",
+                        "function": {
+                          "name": "get_weather",
+                          "description": "Get the current weather in a given location",
+                          "parameters": {
+                            "type": "object",
+                            "properties": {
+                              "location": {
+                                "type": "string",
+                                "description": "The city and state, e.g. San Francisco, CA"
+                              }
+                            },
+                            "required": ["location"]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful chat completion response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCompletionResponse"
+                }
+              },
+              "text/event-stream": {
+                "description": "Server-sent events stream when `stream: true` is set. Each event contains a `ChatCompletionChunk` object."
+              }
+            },
+            "headers": {
+              "x-trace-id": {
+                "description": "Trace ID for this request, useful for debugging and log correlation.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "x-model-used": {
+                "description": "The actual model that served this request (may differ from the requested model if routing/fallback occurred).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-provider-used": {
+                "description": "The provider backend that served this request.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-cost-usd": {
+                "description": "Estimated cost of this request in USD.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid parameters or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Budget exceeded - the request was blocked because it would exceed your budget limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable - all providers are down or killswitch is active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "operationId": "listModels",
+        "summary": "List available models",
+        "description": "Returns a list of all models available through your configured providers and routes. The list is filtered based on your API key's permissions and environment configuration.",
+        "tags": ["Models"],
+        "responses": {
+          "200": {
+            "description": "List of available models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key obtained from the OpenFive dashboard. Create keys in Settings > API Keys. Keys are scoped to an environment and optionally to specific routes."
+      }
+    },
+    "schemas": {
+      "ChatCompletionRequest": {
+        "type": "object",
+        "required": ["model", "messages"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Model identifier. Use `auto` to let the gateway choose the optimal model based on your route configuration. Otherwise, specify a model like `openai/gpt-4o` or `anthropic/claude-3.5-sonnet`.",
+            "examples": ["auto", "openai/gpt-4o", "anthropic/claude-3.5-sonnet"]
+          },
+          "messages": {
+            "type": "array",
+            "description": "A list of messages comprising the conversation so far.",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "minItems": 1
+          },
+          "temperature": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "default": 1,
+            "description": "Sampling temperature between 0 and 2. Higher values make output more random, lower values more deterministic."
+          },
+          "max_tokens": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Maximum number of tokens to generate in the response."
+          },
+          "top_p": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 1,
+            "description": "Nucleus sampling parameter. Only consider tokens with cumulative probability up to this value."
+          },
+          "stream": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, returns a stream of server-sent events as tokens are generated."
+          },
+          "tools": {
+            "type": "array",
+            "description": "A list of tools the model may call. Currently only `function` type tools are supported.",
+            "items": {
+              "$ref": "#/components/schemas/Tool"
+            }
+          },
+          "tool_choice": {
+            "description": "Controls which (if any) tool the model should use. `auto` lets the model decide, `none` disables tools, or specify a tool by name.",
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": ["auto", "none", "required"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["function"]
+                  },
+                  "function": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["name"]
+                  }
+                },
+                "required": ["type", "function"]
+              }
+            ]
+          },
+          "stop": {
+            "description": "Up to 4 sequences where the API will stop generating further tokens.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 4
+              }
+            ]
+          },
+          "frequency_penalty": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2,
+            "default": 0,
+            "description": "Penalizes tokens based on their frequency in the text so far."
+          },
+          "presence_penalty": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2,
+            "default": 0,
+            "description": "Penalizes tokens based on whether they appear in the text so far."
+          },
+          "response_format": {
+            "type": "object",
+            "description": "An object specifying the format that the model must output.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["text", "json_object", "json_schema"],
+                "description": "The type of response format."
+              }
+            }
+          },
+          "seed": {
+            "type": "integer",
+            "description": "If specified, attempts to produce deterministic results."
+          },
+          "user": {
+            "type": "string",
+            "description": "A unique identifier representing your end-user for abuse monitoring."
+          }
+        }
+      },
+      "ChatCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A unique identifier for the chat completion.",
+            "examples": ["chatcmpl-abc123"]
+          },
+          "object": {
+            "type": "string",
+            "enum": ["chat.completion"],
+            "description": "The object type, always `chat.completion`."
+          },
+          "created": {
+            "type": "integer",
+            "description": "The Unix timestamp (in seconds) of when the completion was created."
+          },
+          "model": {
+            "type": "string",
+            "description": "The model used for the completion. This may differ from the requested model if the gateway performed routing.",
+            "examples": ["openai/gpt-4o-2024-08-06"]
+          },
+          "choices": {
+            "type": "array",
+            "description": "A list of completion choices. Typically contains one choice.",
+            "items": {
+              "$ref": "#/components/schemas/Choice"
+            }
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "system_fingerprint": {
+            "type": "string",
+            "description": "A fingerprint representing the backend configuration."
+          }
+        },
+        "required": ["id", "object", "created", "model", "choices", "usage"]
+      },
+      "Message": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["system", "user", "assistant", "tool"],
+            "description": "The role of the message author."
+          },
+          "content": {
+            "description": "The contents of the message. Can be a string or an array of content parts for multimodal input.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["text", "image_url"]
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "image_url": {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["type"]
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "An optional name for the message author."
+          },
+          "tool_calls": {
+            "type": "array",
+            "description": "Tool calls generated by the model (only present in assistant messages).",
+            "items": {
+              "$ref": "#/components/schemas/ToolCall"
+            }
+          },
+          "tool_call_id": {
+            "type": "string",
+            "description": "The ID of the tool call this message is responding to (only present in tool messages)."
+          }
+        }
+      },
+      "Choice": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "description": "The index of the choice in the list."
+          },
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "finish_reason": {
+            "type": "string",
+            "enum": ["stop", "length", "tool_calls", "content_filter"],
+            "description": "The reason the model stopped generating tokens."
+          }
+        },
+        "required": ["index", "message", "finish_reason"]
+      },
+      "Usage": {
+        "type": "object",
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer",
+            "description": "Number of tokens in the prompt."
+          },
+          "completion_tokens": {
+            "type": "integer",
+            "description": "Number of tokens in the generated completion."
+          },
+          "total_tokens": {
+            "type": "integer",
+            "description": "Total number of tokens used (prompt + completion)."
+          }
+        },
+        "required": ["prompt_tokens", "completion_tokens", "total_tokens"]
+      },
+      "Tool": {
+        "type": "object",
+        "required": ["type", "function"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["function"],
+            "description": "The type of tool. Currently only `function` is supported."
+          },
+          "function": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name of the function."
+              },
+              "description": {
+                "type": "string",
+                "description": "A description of what the function does."
+              },
+              "parameters": {
+                "type": "object",
+                "description": "The parameters the function accepts, described as a JSON Schema object."
+              }
+            }
+          }
+        }
+      },
+      "ToolCall": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the tool call."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["function"],
+            "description": "The type of the tool call."
+          },
+          "function": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name of the function to call."
+              },
+              "arguments": {
+                "type": "string",
+                "description": "The arguments to call the function with, as a JSON string."
+              }
+            },
+            "required": ["name", "arguments"]
+          }
+        },
+        "required": ["id", "type", "function"]
+      },
+      "ModelListResponse": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": ["list"],
+            "description": "The object type, always `list`."
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Model"
+            }
+          }
+        },
+        "required": ["object", "data"]
+      },
+      "Model": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The model identifier.",
+            "examples": ["openai/gpt-4o"]
+          },
+          "object": {
+            "type": "string",
+            "enum": ["model"],
+            "description": "The object type, always `model`."
+          },
+          "created": {
+            "type": "integer",
+            "description": "The Unix timestamp of when the model was added."
+          },
+          "owned_by": {
+            "type": "string",
+            "description": "The provider that owns the model.",
+            "examples": ["openai"]
+          },
+          "context_window": {
+            "type": "integer",
+            "description": "Maximum context window in tokens."
+          },
+          "pricing": {
+            "type": "object",
+            "description": "Pricing information per million tokens.",
+            "properties": {
+              "input_per_million": {
+                "type": "number",
+                "description": "Cost per million input tokens in USD."
+              },
+              "output_per_million": {
+                "type": "number",
+                "description": "Cost per million output tokens in USD."
+              }
+            }
+          },
+          "capabilities": {
+            "type": "object",
+            "description": "Model capability flags.",
+            "properties": {
+              "streaming": {
+                "type": "boolean"
+              },
+              "tools": {
+                "type": "boolean"
+              },
+              "vision": {
+                "type": "boolean"
+              },
+              "json_mode": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": ["id", "object", "created", "owned_by"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "description": "A human-readable error message."
+              },
+              "type": {
+                "type": "string",
+                "description": "The type of error.",
+                "examples": ["invalid_request_error", "authentication_error", "rate_limit_error", "budget_exceeded", "server_error"]
+              },
+              "code": {
+                "type": "string",
+                "description": "A machine-readable error code.",
+                "examples": ["invalid_api_key", "model_not_found", "budget_exceeded", "killswitch_active"]
+              },
+              "param": {
+                "type": "string",
+                "description": "The parameter that caused the error, if applicable."
+              }
+            },
+            "required": ["message", "type"]
+          }
+        },
+        "required": ["error"]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Chat",
+      "description": "Chat completion endpoints - the primary interface for sending inference requests through the gateway."
+    },
+    {
+      "name": "Models",
+      "description": "Model discovery and listing endpoints."
+    }
+  ]
+}

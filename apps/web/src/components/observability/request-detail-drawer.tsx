@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -14,6 +15,11 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { TruncatedId } from "@/components/shared/truncated-id";
 import { CodeBlock } from "@/components/shared/code-block";
 import { formatCurrency, formatTokens, formatLatency } from "@/lib/formatters";
+import { ReplayButton } from "@/components/observability/replay-button";
+import {
+  ReplayComparison,
+  type ReplayComparisonData,
+} from "@/components/observability/replay-comparison";
 import {
   Clock,
   Zap,
@@ -25,6 +31,7 @@ import {
   Cpu,
   Shield,
   Wrench,
+  Play,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -34,6 +41,8 @@ import {
 interface RequestRow {
   id: string;
   request_id: string;
+  environment_id?: string;
+  route_id?: string;
   model_identifier: string;
   provider_id?: string;
   input_tokens: number;
@@ -589,9 +598,22 @@ export function RequestDetailDrawer({
   open,
   onOpenChange,
 }: RequestDetailDrawerProps) {
+  const [replayComparison, setReplayComparison] =
+    useState<ReplayComparisonData | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Reset replay state when drawer closes or request changes
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      setReplayComparison(null);
+      setActiveTab("overview");
+    }
+    onOpenChange(next);
+  };
+
   if (!request) {
     return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetContent side="right" className="w-[520px] sm:w-[600px]">
           <SheetHeader>
             <SheetTitle>Request Details</SheetTitle>
@@ -609,8 +631,13 @@ export function RequestDetailDrawer({
 
   const timeline = buildTimeline(request);
 
+  const handleReplayComplete = (comparison: ReplayComparisonData) => {
+    setReplayComparison(comparison);
+    setActiveTab("replay");
+  };
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="right"
         className="flex w-[520px] flex-col overflow-hidden sm:w-[600px]"
@@ -620,6 +647,15 @@ export function RequestDetailDrawer({
           <div className="flex items-center gap-3 pr-8">
             <SheetTitle className="text-base">Request Trace</SheetTitle>
             <StatusBadge status={request.status} />
+            <div className="ml-auto">
+              <ReplayButton
+                requestId={request.id}
+                originalModel={request.model_identifier}
+                environmentId={request.environment_id ?? ""}
+                routeId={request.route_id}
+                onReplayComplete={handleReplayComplete}
+              />
+            </div>
           </div>
           <SheetDescription className="sr-only">
             Detailed trace information for request {request.request_id}
@@ -673,7 +709,7 @@ export function RequestDetailDrawer({
           <Separator className="my-6" />
 
           {/* Detail tabs */}
-          <Tabs defaultValue="overview">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList variant="line" className="w-full">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="routing">
@@ -691,6 +727,12 @@ export function RequestDetailDrawer({
                   <span className="ml-1 inline-flex size-1.5 rounded-full bg-red-500" />
                 )}
               </TabsTrigger>
+              {replayComparison && (
+                <TabsTrigger value="replay">
+                  <Play className="size-3" />
+                  Replay
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="overview" className="mt-4">
@@ -708,6 +750,12 @@ export function RequestDetailDrawer({
             <TabsContent value="errors" className="mt-4">
               <ErrorsTab request={request} />
             </TabsContent>
+
+            {replayComparison && (
+              <TabsContent value="replay" className="mt-4">
+                <ReplayComparison comparison={replayComparison} />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </SheetContent>
