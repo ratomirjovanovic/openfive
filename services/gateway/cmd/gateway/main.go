@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/openfive/gateway/internal/config"
 	"github.com/openfive/gateway/internal/model"
